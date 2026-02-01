@@ -1,0 +1,29 @@
+{
+  "name": "labmu-cms",
+  "version": "1.0.0",
+  "description": "LabMu CMS - Modern Content Management System on Cloudflare Workers",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "npm run sync-themes && wrangler dev",
+    "deploy": "npm run sync-themes && wrangler deploy",
+    "sync-themes": "node sync-themes.mjs",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "hono",
+    "cloudflare-workers",
+    "cms",
+    "d1",
+    "r2"
+  ],
+  "author": "LabMu Team",
+  "license": "ISC",
+  "dependencies": {
+    "hono": "^4.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240101.0",
+    "wrangler": "^3.0.0",
+    "typescript": "^5.0.0"
+  }
+}

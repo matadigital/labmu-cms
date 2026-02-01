@@ -1,0 +1,17 @@
+name = "labmu-cms-dev"
+main = "src/index.ts"
+compatibility_date = "2024-04-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "nusa-db"
+database_id = "91fbd67c-6a1d-445d-973c-b8765118cba0"
+
+[[r2_buckets]]
+binding = "MY_BUCKET"
+bucket_name = "labmu-cms-dev"
+
+# --- CONFIG KV CACHE QURAN ---
+[[kv_namespaces]]
+binding = "QURAN_CACHE"
+id = "70dfa7de22fd44fc9f50436a4e3bf5fd"
