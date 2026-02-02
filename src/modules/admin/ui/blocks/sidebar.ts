@@ -5,17 +5,27 @@ export const sidebarBlock = `
   </div>
 
   <nav style="flex:1; overflow-y:auto; overflow-x:hidden; padding-top:10px;">
+    
     <a class="menu-item" :class="view=='dash'?'active':''" @click="view='dash'" title="Dashboard">
       <i class="fas fa-tachometer-alt"></i> <span class="menu-txt">Dashboard</span>
     </a>
     
     <div class="group-title">Content</div>
+    
     <a class="menu-item" :class="view=='posts'?'active':''" @click="view='posts'; loadPosts()" title="All Posts">
       <i class="fas fa-thumbtack"></i> <span class="menu-txt">All Posts</span>
     </a>
     
-    <a class="menu-item" :class="view=='add'?'active':''" @click="openEditor()" title="Add New">
-      <i class="fas fa-plus-circle"></i> <span class="menu-txt">Add New</span>
+    <a class="menu-item" :class="(view=='add' && form.type=='post')?'active':''" @click="openEditor('post')" title="Add Post">
+      <i class="fas fa-plus-circle"></i> <span class="menu-txt">Add Post</span>
+    </a>
+
+    <a class="menu-item" :class="view=='pages'?'active':''" @click="view='pages'; loadPages()" title="Static Pages">
+      <i class="fas fa-copy"></i> <span class="menu-txt">Pages</span>
+    </a>
+    
+    <a class="menu-item" :class="(view=='add' && form.type=='page')?'active':''" @click="openEditor('page')" title="Add Page">
+      <i class="fas fa-plus-square"></i> <span class="menu-txt">Add Page</span>
     </a>
 
     <a class="menu-item" :class="view=='media'?'active':''" @click="view='media'; loadMedia()" title="Media">
@@ -50,6 +60,7 @@ export const sidebarBlock = `
     <a class="menu-item" :class="view=='quran'?'active':''" @click="loadQuranList()" title="Quran Pro">
       <i class="fas fa-quran"></i> <span class="menu-txt">Quran Pro</span>
     </a>
+
   </nav>
 
   <a class="menu-item" @click="logout()" style="border-top:1px solid #444; margin-top:auto; height:50px;" title="Logout">

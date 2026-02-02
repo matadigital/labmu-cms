@@ -16,6 +16,7 @@ import migrationRouter from './migration'
 import themeRouter from './modules/theme/theme.router' 
 import quranRouter from './addons/quran-mu/quran.router' 
 import { updateSchema } from './db/init'
+import menusRouter from './modules/menus/menus.router'; // Import
 
 import settings from './modules/settings/settings.router';
 
@@ -46,7 +47,8 @@ app.route('/api/settings', settingsRouter)
 app.route('/api/media', mediaRouter)
 app.route('/api/theme', themeRouter)
 app.route('/api/users', usersRouter)
-app.route('/api/settings', settings);
+app.route('/api/settings', settings)
+app.route('/api/menus', menusRouter);
 
 // Fitur Quran (Manual Route)
 app.route('/api/quran', quranRouter)

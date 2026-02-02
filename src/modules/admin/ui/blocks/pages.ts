@@ -5,23 +5,19 @@ import { mediaPage } from './media.page';
 import { usersPage } from './users.page';
 import { themesPage } from './themes.page';
 import { quranPage } from './quran.page';
-import { settingsPage } from './settings.page'; // Pastikan file ini ada
+import { settingsPage } from './settings.page';
+import { menusPage } from './menus.page';
+import { staticPage } from './static.page'; // <--- 1. Tambahan Import
 
 export const pagesBlock = `
     ${dashboardPage}
     ${postsPage}
-    ${editorPage} 
+    ${staticPage}     ${editorPage} 
     ${mediaPage}
     ${usersPage}
     ${themesPage}
     ${quranPage}
-    ${settingsPage}  <div x-show="view==='menus'">
-        <div style="display:flex; justify-content:space-between; margin-bottom:20px; align-items:center;">
-             <h2 style="margin:0;">Menu Manager</h2>
-        </div>
-        <div class="card" style="padding:40px; text-align:center; color:#999;">
-             <i class="fas fa-tools fa-3x" style="margin-bottom:15px; opacity:0.3;"></i>
-             <p>Fitur Drag & Drop Menu sedang dalam pengembangan.</p>
-        </div>
-    </div>
+
+    ${menusPage}
+    ${settingsPage}  
 `;

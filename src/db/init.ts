@@ -4,7 +4,8 @@ export const updateSchema = async (db: D1Database) => {
   const logs = [];
 
   try {
-    // 1. Tabel Options (PENTING: Ini yang bikin macet)
+    // 1. TABEL OPTIONS
+    // Menyimpan konfigurasi autoload
     await db.prepare(`
       CREATE TABLE IF NOT EXISTS options (
         key TEXT PRIMARY KEY, 
@@ -12,9 +13,10 @@ export const updateSchema = async (db: D1Database) => {
         autoload INTEGER DEFAULT 0
       );
     `).run();
-    logs.push("✅ Table 'options' checked/created.");
+    logs.push("✅ Table 'options' checked (Safe).");
 
-    // 2. Tabel Users (Untuk Admin Login)
+    // 2. TABEL USERS
+    // Menyimpan data login admin/editor
     await db.prepare(`
       CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,9 +26,10 @@ export const updateSchema = async (db: D1Database) => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `).run();
-    logs.push("✅ Table 'users' checked/created.");
+    logs.push("✅ Table 'users' checked (Safe).");
 
-    // 3. Tabel Contents (Artikel, Halaman, Menu)
+    // 3. TABEL CONTENTS
+    // Menyimpan Post, Page, Draft, dll
     await db.prepare(`
       CREATE TABLE IF NOT EXISTS contents (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -45,11 +48,36 @@ export const updateSchema = async (db: D1Database) => {
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `).run();
-    logs.push("✅ Table 'contents' checked/created.");
+    logs.push("✅ Table 'contents' checked (Safe).");
+
+    // 4. TABEL SETTINGS
+    // Menyimpan Judul Situs, Favicon, Deskripsi
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT
+      );
+    `).run();
+    logs.push("✅ Table 'settings' checked (Safe).");
+
+    // 5. TABEL MENUS (FIXED & STABLE)
+    // ID menggunakan TEXT agar support UUID
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS menus (
+        id TEXT PRIMARY KEY, 
+        label TEXT,
+        url TEXT,
+        order_num INTEGER DEFAULT 0
+      );
+    `).run();
+    logs.push("✅ Table 'menus' checked (Safe - ID TEXT).");
 
     return logs;
+
   } catch (e: any) {
-    console.error(e);
-    throw new Error("DB Init Failed: " + e.message);
+    console.error("Schema Update Error:", e);
+    // Kita return error log biar tampil di browser/API
+    logs.push("❌ ERROR: " + e.message);
+    return logs;
   }
 };

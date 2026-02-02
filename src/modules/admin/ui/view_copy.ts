@@ -1,9 +1,10 @@
-// Import blok UI dari folder blocks
+// Import blok UI
 import { adminStyles } from './blocks/styles';
 import { sidebarBlock } from './blocks/sidebar';
 import { topbarBlock } from './blocks/topbar'; 
-import { pagesBlock } from './blocks/pages';
+import { pagesBlock } from './blocks/pages'; // <--- Ini sekarang sudah memuat Settings
 import { scriptBlock } from './blocks/scripts';
+import { globalModals } from './blocks/modals'; // <--- Import Modal
 
 export const renderAdmin = () => `
 <!DOCTYPE html>
@@ -12,12 +13,14 @@ export const renderAdmin = () => `
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LabMu CMS Admin</title>
+  <link id="site-favicon" rel="icon" href="">
   
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
   <link href="https://cdn.jsdelivr.net/npm/suneditor@latest/dist/css/suneditor.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/suneditor@latest/dist/suneditor.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/suneditor@latest/src/lang/en.js"></script>
   
   <style>
     ${adminStyles}
@@ -32,7 +35,6 @@ export const renderAdmin = () => `
         <div style="text-align:left; margin-top:20px;">
             <label style="font-size:12px; font-weight:bold; display:block; margin-bottom:5px;">Username</label>
             <input x-model="loginForm.username" type="text" class="input" placeholder="admin">
-            
             <label style="font-size:12px; font-weight:bold; display:block; margin-top:10px; margin-bottom:5px;">Password</label>
             <input x-model="loginForm.password" type="password" class="input" placeholder="password" @keyup.enter="doLogin()">
         </div>
@@ -56,6 +58,8 @@ export const renderAdmin = () => `
 
       <main class="main-content">
         ${pagesBlock} 
+
+        ${globalModals}
       </main>
     </div>
 

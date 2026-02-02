@@ -2,7 +2,8 @@ import { featuredImageLogic } from './featured.logic';
 import { mediaLogic } from './media.logic';
 import { usersLogic } from './users.logic';
 import { quranLogic } from './quran.logic';
-import { settingsLogic } from './settings.logic'; // <--- 1. Import Logic Baru
+import { settingsLogic } from './settings.logic';
+import { menusLogic } from './menus.logic';
 
 export const scriptBlock = `
 
@@ -33,20 +34,20 @@ function startSunEditor(id, token, content, onChange) {
 /** CMS APP ALPINE */
 function cms(){
   return {
-    // STATE
+    // STATE BASIC
     token: localStorage.getItem('labmu_token')||'', 
     view:'dash', 
     sidebarOpen: true, 
     userRole: 'editor', 
-    
     loginForm: { username: '', password: '' }, isLoggingIn: false,
 
-    posts:[], mediaList: [], mediaFilter: '', usersList: [],
+    // DATA LISTS (Saya tambah pages: [] disini)
+    posts:[], pages:[], mediaList: [], mediaFilter: '', usersList: [],
     quranList: [], activeSurat: null, loadingQuran: false,
-    
     availableThemes: [], activeThemeId: 'labmu-default',
     uniqueCategories: [], uniqueTags: [],
 
+    // FORM EDITOR
     form: {
         title:'', slug:'', body:'', type:'post', status:'publish', date:'', 
         featured_image:'', featured_image_caption:'', category:'', tags:''
@@ -54,27 +55,53 @@ function cms(){
     editingId: null,
     
     // UI HELPER
-    isUploading: false, showMediaSelector: false,
-    showUserModal: false, userForm: { username:'', password:'', name:'', email:'', role:'editor' },
+    isUploading: false, 
+    showMediaSelector: false,
+    showUserModal: false, 
+    userForm: { username:'', password:'', name:'', email:'', role:'editor' },
+    
+    // VARIABLE BARU: Target Selector
+    mediaSelectorTarget: null, 
 
     // ===================================
-    // INJECT LOGIC
+    // INJECT LOGIC (SESUAI CODE STABLE OM)
     // ===================================
     ${featuredImageLogic}
     ${mediaLogic}
     ${usersLogic}
     ${quranLogic}
-    ${settingsLogic} // <--- 2. Inject Logic Disini
+    ${settingsLogic}
+    ${menusLogic}, 
     
     // ===================================
-    // EDITOR HELPERS
+    // OVERRIDE LOGIC SELECTOR
+    // ===================================
+    
+    openLogoSelector(target) {
+        this.mediaSelectorTarget = target; 
+        this.openMediaSelector();          
+    },
+
+    confirmFeaturedImage() {
+       if(!this.activeMediaItem) return;
+       if (this.mediaSelectorTarget) {
+           this.settings[this.mediaSelectorTarget] = this.activeMediaItem.url;
+           this.mediaSelectorTarget = null;
+       } else {
+           this.form.featured_image = this.activeMediaItem.url;
+       }
+       this.showMediaSelector = false;
+    },
+    
+    // ===================================
+    // HELPER LAINNYA
     // ===================================
     getPageTitle() { 
-      if(this.view === 'add' && this.editingId) return 'Edit Post';
+      if(this.view === 'add' && this.editingId) return 'Edit Content';
+      if(this.view === 'add') return 'Add New';
       const map = {
-          'dash':'Dashboard', 'posts':'All Posts', 'add':'Add New', 
-          'settings':'General Settings', // <--- Judul Halaman
-          'users':'Users', 'media':'Media Library', 'themes':'Themes', 'quran':'Quran Pro'
+          'dash':'Dashboard', 'posts':'All Posts', 'pages':'Static Pages',
+          'settings':'General Settings', 'users':'Users', 'media':'Media Library', 'themes':'Themes', 'quran':'Quran Pro'
       }; 
       return map[this.view] || 'LabMu CMS'; 
     },
@@ -93,9 +120,12 @@ function cms(){
         }
     },
 
-    openEditor() { 
+    // OPEN EDITOR (Saya Update agar terima parameter type)
+    openEditor(type) { 
       this.view = 'add'; this.editingId = null; 
-      this.form = {title:'', slug:'', body:'', type:'post', status:'publish', date:'', featured_image:'', featured_image_caption:'', category:'', tags:''}; 
+      // Set type default 'post' jika tidak ada
+      const defaultType = type || 'post';
+      this.form = {title:'', slug:'', body:'', type: defaultType, status:'publish', date:'', featured_image:'', featured_image_caption:'', category:'', tags:''}; 
       setTimeout(() => { if(typeof startSunEditor === 'function') startSunEditor('editor', this.token, '', (c) => { this.form.body = c; }); }, 100);
     },
     
@@ -112,6 +142,7 @@ function cms(){
       setTimeout(() => { if(typeof startSunEditor === 'function') startSunEditor('editor', this.token, post.body, (c) => { this.form.body = c; }); }, 100);
     },
 
+    // SAVE (Saya Update agar redirect ke Pages jika tipe page)
     async save() {
        if (window.sunEditor && window.sunEditor.getContents) this.form.body = window.sunEditor.getContents();
        if (!this.form.title) return alert('Judul wajib diisi!');
@@ -119,6 +150,9 @@ function cms(){
 
        const payload = { ...this.form }; 
        if(this.form.date) payload.created_at = this.form.date;
+       
+       // Cek apakah ini Page
+       const isPage = payload.type === 'page';
 
        const url = this.editingId ? '/api/contents/' + this.editingId : '/api/contents';
        const method = this.editingId ? 'PUT' : 'POST';
@@ -127,7 +161,12 @@ function cms(){
            let res = await fetch(url, { method: method, headers: { 'Content-Type': 'application/json', 'Authorization': this.token }, body: JSON.stringify(payload) });
            if (res.ok) {
                alert('✅ Berhasil Tersimpan!');
-               this.view = 'posts'; this.loadPosts(); this.editingId = null;
+               
+               // Redirect ke view yang benar
+               this.view = isPage ? 'pages' : 'posts';
+               if(isPage) this.loadPages(); else this.loadPosts();
+               
+               this.editingId = null;
                this.form = {title:'', slug:'', body:'', type:'post', status:'publish', date:'', featured_image:'', featured_image_caption:'', category:'', tags:''};
            } else {
                let json = await res.json(); alert('❌ Gagal: ' + (json.error));
@@ -135,11 +174,11 @@ function cms(){
        } catch (e) { alert('❌ Error Network'); }
     },
 
-    // GENERAL LOADERS
+    // LOAD POSTS (Saya tambah filter type=post)
     async loadPosts(){ 
         if(!this.token) return; 
         try { 
-            let res = await fetch('/api/contents'); let json = await res.json(); this.posts = json.data; 
+            let res = await fetch('/api/contents?type=post'); let json = await res.json(); this.posts = json.data; 
             const cats = new Set(); const tags = new Set();
             if (this.posts) {
                 this.posts.forEach(p => {
@@ -149,6 +188,14 @@ function cms(){
             }
             this.uniqueCategories = Array.from(cats).filter(c => c).sort();
             this.uniqueTags = Array.from(tags).filter(t => t).sort();
+        } catch(e) {} 
+    },
+    
+    // LOAD PAGES (INI YANG HILANG DAN BIKIN ERROR, SAYA TAMBAHKAN)
+    async loadPages(){ 
+        if(!this.token) return; 
+        try { 
+            let res = await fetch('/api/contents?type=page'); let json = await res.json(); this.pages = json.data; 
         } catch(e) {} 
     },
 
@@ -174,12 +221,10 @@ function cms(){
        } catch(e) { alert('Error Network'); }
     },
 
-    // INIT APP
     init() { 
         if(this.token) { 
             this.decodeRole(); 
             this.loadAllData();
-            // 3. Panggil Load Settings saat start
             if(typeof this.loadSettings === 'function') this.loadSettings();
         } 
     },
@@ -218,6 +263,7 @@ function cms(){
 
     loadAllData() {
         try { this.loadPosts(); } catch(e){}
+        try { this.loadPages(); } catch(e){} // SAYA TAMBAH LOADPAGES DISINI JUGA
         try { this.loadThemes(); } catch(e){}
         if(typeof this.loadMedia === 'function') { try { this.loadMedia(); } catch(e){} } 
         if(this.userRole === 'admin') {
@@ -227,7 +273,7 @@ function cms(){
     
     async deletePost(id) {
        if(!confirm('Hapus?')) return;
-       try { await fetch('/api/contents/' + id, { method: 'DELETE', headers: { 'Authorization': this.token } }); this.loadPosts(); } catch(e) {}
+       try { await fetch('/api/contents/' + id, { method: 'DELETE', headers: { 'Authorization': this.token } }); this.loadPosts(); this.loadPages(); } catch(e) {}
     }
   } 
 }
