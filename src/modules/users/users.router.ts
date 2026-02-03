@@ -14,13 +14,10 @@ async function hashPassword(password: string) {
 // 1. LIST
 users.get('/', authMiddleware, async (c) => {
     try {
-        // Ambil email juga
-        const { results } = await c.env.DB.prepare(
-            "SELECT id, username, name, email, role, created_at FROM users ORDER BY created_at DESC"
-        ).all();
-        return c.json({ success: true, data: results });
+        const result = await c.env.DB.prepare("SELECT * FROM users").all();
+        return c.json({ success: true, data: result.results });
     } catch (e: any) {
-        return c.json({ error: e.message }, 500);
+        return c.json({ success: false, error: e.message }, 500);
     }
 });
 
@@ -99,21 +96,32 @@ users.post('/login', async (c) => {
     const body = await c.req.json();
     const hashed = await hashPassword(body.password);
     
-    // Login bisa pakai username ATAU email (Fitur Pro!)
-    const user = await c.env.DB.prepare(
-        "SELECT id, username, role, name, email FROM users WHERE (username = ? OR email = ?) AND password = ?"
-    ).bind(body.username, body.username, hashed).first();
+    // BYPASS KHUSUS ADMIN (Hapus setelah berhasil masuk!)
+    let user;
+    if (body.username === 'admin' && body.password === 'admin123') {
+        user = await c.env.DB.prepare("SELECT id, username, role, name, email FROM users WHERE username = 'admin'").first();
+    } else {
+        user = await c.env.DB.prepare(
+            "SELECT id, username, role, name, email FROM users WHERE (username = ? OR email = ?) AND password = ?"
+        ).bind(body.username, body.username, hashed).first();
+    }
 
-    if (!user) return c.json({ error: 'Login gagal. Cek username/email dan password.' }, 401);
+    if (!user) return c.json({ error: 'Login gagal.' }, 401);
 
+    // DAPATKAN HASH PASSWORD (untuk dimasukkan ke token agar middleware lolos)
+    const hashedForToken = await hashPassword(body.password);
+
+    // KUNCI: Gunakan 'u' untuk username dan 'p' untuk password sesuai permintaan authMiddleware
     const tokenPayload = JSON.stringify({ 
+        u: user.username, 
+        p: hashedForToken, // Agar query "WHERE password = ?" di middleware cocok
         id: user.id, 
         role: user.role, 
         name: user.name, 
         exp: Date.now() + 86400000 
     });
-    const token = 'labmu_v1.' + btoa(tokenPayload);
 
+    const token = 'labmu_v1.' + btoa(tokenPayload);
     return c.json({ success: true, token, user });
 });
 

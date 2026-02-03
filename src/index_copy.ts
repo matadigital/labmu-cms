@@ -1,45 +1,36 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { Bindings } from './types'
+
+// --- 1. IMPORT ADDONS SYSTEM ---
 import registerAddons from './addons'
 
-// MODULES
+// --- 2. IMPORT MODULES LAMA (WAJIB ADA) ---
 import contentRouter from './modules/contents/contents.router'
 import adminRouter from './modules/admin/admin.router'
 import publicRouter from './modules/public/public.router'
 import settingsRouter from './modules/settings/settings.router'
 import mediaRouter from './modules/media/media.router'
 import usersRouter from './modules/users/users.router'
-import migrationRouter from './migration'
-import themeRouter from './modules/theme/theme.router'
-import quranRouter from './addons/quran-mu/quran.router'
+import migrationRouter from './migration' 
+import themeRouter from './modules/theme/theme.router' 
+import quranRouter from './addons/quran-mu/quran.router' 
 import { updateSchema } from './db/init'
-import menusRouter from './modules/menus/menus.router'
+import menusRouter from './modules/menus/menus.router'; // Import
 
+import settings from './modules/settings/settings.router';
+
+// --- 3. INISIALISASI APP ---
 const app = new Hono<{ Bindings: Bindings }>()
 
-// 1. MIDDLEWARE SECURITY (WAJIB PALING ATAS)
-app.use('*', async (c, next) => {
-  await next();
-  c.header('X-Frame-Options', 'SAMEORIGIN');
-  c.header('X-Content-Type-Options', 'nosniff');
-  // IZINKAN ALPINE JS (unsafe-eval)
-  c.header('Content-Security-Policy', 
-    "default-src 'self' https: data: blob:; " +
-    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
-    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
-    "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; " +
-    "img-src 'self' data: https: blob:; " +
-    "connect-src 'self' https:;"
-  );
-});
-
-// 2. CORS
+// Middleware
 app.use('/*', cors());
 
-// 3. ROUTES
+// --- 4. DAFTARKAN ADDONS (UPDATE PENTING DISINI) ---
+// Kita masukkan variabel 'app' agar Addon WP Importer bisa bikin route sendiri
 registerAddons(app);
 
+// --- 5. SYSTEM ROUTES (PERTAHANKAN) ---
 app.get('/sys/install', async (c) => {
   try {
      const logs = await updateSchema(c.env.DB);
@@ -49,15 +40,23 @@ app.get('/sys/install', async (c) => {
   }
 })
 
+// --- 6. ROUTING MODULES LENGKAP (PERTAHANKAN) ---
 app.route('/sys/migration', migrationRouter)
 app.route('/api/contents', contentRouter)
 app.route('/api/settings', settingsRouter)
 app.route('/api/media', mediaRouter)
 app.route('/api/theme', themeRouter)
 app.route('/api/users', usersRouter)
-app.route('/api/menus', menusRouter)
+app.route('/api/settings', settings)
+app.route('/api/menus', menusRouter);
+
+// Fitur Quran (Manual Route)
 app.route('/api/quran', quranRouter)
+
+// Admin Panel
 app.route('/admin', adminRouter)
-app.route('/', publicRouter) // Public paling bawah
+
+// Public Router (Harus paling bawah karena menangkap semua slug)
+app.route('/', publicRouter)
 
 export default app

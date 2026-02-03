@@ -1,65 +1,65 @@
-import { Hono } from 'hono'
-import { authMiddleware } from '../../middleware/auth'
-import { Bindings } from '../../types'
-// IMPORT PENTING: Ambil daftar tema dari hasil scan otomatis
-import { availableThemes } from '../../themes/registry'
+import { Hono } from 'hono';
+import { availableThemes } from '../../themes/registry';
 
-const theme = new Hono<{ Bindings: Bindings }>()
+const theme = new Hono<{ Bindings: any }>();
 
-// 1. LIST THEMES (Dinamis dari Registry + Status DB)
+// GET: List Themes & Status Aktif
 theme.get('/', async (c) => {
-  let currentActiveId = 'labmu-default';
-  
-  // Cek database untuk tahu mana yang sedang aktif
   try {
-    const activeOption = await c.env.DB.prepare("SELECT value FROM options WHERE key = 'active_theme'").first();
-    if(activeOption) currentActiveId = activeOption.value as string;
-  } catch(e) {
-    // Abaikan jika tabel belum ada (fallback ke default)
+    // 1. Ambil status aktif langsung dari tabel themes
+    const { results: dbThemes } = await c.env.DB.prepare("SELECT id, active FROM themes").all();
+    
+    // 2. Map data file registry dengan data database
+    const data = availableThemes.map(t => {
+      const dbEntry = dbThemes?.find((d: any) => d.id === t.id);
+      return {
+        ...t,
+        active: dbEntry ? dbEntry.active === 1 : (t.id === 'labmu-default'), // Default fallback
+        thumbnail: `https://placehold.co/600x400/2563eb/ffffff?text=${encodeURIComponent(t.name)}`
+      };
+    });
+
+    return c.json({ success: true, data });
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500);
   }
+});
 
-  // GABUNGKAN DATA: Registry + Status Aktif
-  const data = availableThemes.map((t: any) => ({
-    id: t.id,
-    name: t.name,
-    description: t.description || 'Tidak ada deskripsi',
-    // Logic untuk menentukan badge "Active"
-    active: t.id === currentActiveId,
-    // Thumbnail placeholder otomatis sesuai nama tema
-    thumbnail: `https://placehold.co/600x400/2563eb/ffffff?text=${encodeURIComponent(t.name)}`
-  }));
-
-  return c.json({ success: true, data });
-})
-
-// 2. ACTIVATE THEME
-theme.post('/activate', authMiddleware, async (c) => {
+// POST: Activate Theme (FIXED LOGIC)
+theme.post('/activate', async (c) => {
   try {
     const body = await c.req.json();
-    // Support theme_id (dari Admin Panel) atau themeId (legacy)
-    const targetId = body.theme_id || body.themeId; 
+    const targetId = body.theme_id || body.themeId;
 
-    if (!targetId) {
-        return c.json({ success: false, message: "ID Tema tidak boleh kosong" }, 400);
-    }
+    if (!targetId) return c.json({ success: false, message: 'ID Tema kosong' }, 400);
 
-    // Pastikan tema benar-benar ada di registry sebelum disimpan
-    const exists = availableThemes.find((t: any) => t.id === targetId);
-    if (!exists) {
-        return c.json({ success: false, message: "Tema tidak dikenal sistem" }, 404);
-    }
+    // 1. Reset semua tema jadi inactive (0)
+    await c.env.DB.prepare("UPDATE themes SET active = 0").run();
+
+    // 2. Cek apakah tema sudah ada di DB, kalau belum insert dulu
+    const exists = await c.env.DB.prepare("SELECT id FROM themes WHERE id = ?").bind(targetId).first();
     
-    // Simpan ke DB (Upsert)
-    await c.env.DB.prepare(`
-      INSERT INTO options (key, value) VALUES ('active_theme', ?)
-      ON CONFLICT(key) DO UPDATE SET value = excluded.value
-    `).bind(targetId).run();
+    if (!exists) {
+       // Ambil detail dari registry
+       const info = availableThemes.find(t => t.id === targetId);
+       if(info) {
+          await c.env.DB.prepare(`
+            INSERT INTO themes (id, name, description, author, version, active) 
+            VALUES (?, ?, ?, ?, ?, 1)
+          `).bind(info.id, info.name, info.description, info.author, info.version).run();
+       } else {
+          return c.json({ success: false, message: 'Tema tidak ditemukan di registry' }, 404);
+       }
+    } else {
+       // 3. Set tema target jadi active (1)
+       await c.env.DB.prepare("UPDATE themes SET active = 1 WHERE id = ?").bind(targetId).run();
+    }
 
-    return c.json({ success: true, message: `Tema ${exists.name} berhasil diaktifkan!` });
+    return c.json({ success: true, message: 'Tema Berhasil Diaktifkan!' });
   } catch (e: any) {
     console.error(e);
     return c.json({ success: false, error: e.message }, 500);
   }
-})
+});
 
-export default theme
+export default theme;

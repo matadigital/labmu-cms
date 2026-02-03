@@ -7,16 +7,32 @@ export const usersLogic = `
     usersList: [],
 
     async loadUsers() {
-       this.isLoadingUsers = true;
-       try {
-          let res = await fetch('/api/users', { headers: { 'Authorization': this.token } });
-          if(res.status === 401) return this.logout();
-          let json = await res.json();
-          if(json.success) {
-              this.usersList = json.data;
-          }
-       } catch(e) { console.error(e); } 
-       finally { this.isLoadingUsers = false; }
+        this.isLoadingUsers = true;
+        try {
+            let res = await fetch('/api/users', { 
+                headers: { 'Authorization': this.token } 
+            });
+
+            // 1. Cek Login Kadaluwarsa
+            if(res.status === 401) return this.logout();
+
+            // 2. Cek kalau server lagi Error 500
+            if(!res.ok) {
+                const errorText = await res.text(); // Ambil teks "Internal Server Error"
+                console.error("D1 Ngamuk:", errorText);
+                return; // Berhenti di sini, jangan lanjut ke res.json()
+            }
+
+            // 3. Kalau OK, baru proses JSON
+            let json = await res.json();
+            if(json.success) {
+                this.usersList = json.data || [];
+            }
+        } catch(e) { 
+            console.error("Gagal koneksi ke API Users:", e); 
+        } finally { 
+            this.isLoadingUsers = false; 
+        }
     },
 
     openAddUser() {

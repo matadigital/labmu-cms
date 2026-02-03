@@ -26,14 +26,19 @@ async function getGlobalData(db: D1Database) {
 }
 
 // --- HELPER: RENDERER THEME (SAFE MODE) ---
-async function getRenderer(db: D1Database) {
-    try {
-        const activeTheme = await db.prepare("SELECT id FROM themes WHERE active = 1").first();
-        const themeId = activeTheme ? (activeTheme as any).id : 'labmu-default';
-        return getActiveTheme(themeId);
-    } catch (e) {
-        return getActiveTheme('labmu-default');
-    }
+async function getRenderer(db: any) {
+  try {
+    // KUNCI: Query ke tabel themes, cari yang active = 1
+    const activeTheme = await db.prepare("SELECT id FROM themes WHERE active = 1").first();
+    
+    // Kalau ketemu, pakai ID-nya. Kalau tidak, pakai default.
+    const themeId = activeTheme ? activeTheme.id : 'labmu-default';
+    
+    return getActiveTheme(themeId);
+  } catch (e) {
+    console.error("Gagal load theme, fallback ke default");
+    return getActiveTheme('labmu-default');
+  }
 }
 
 

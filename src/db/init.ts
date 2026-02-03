@@ -72,6 +72,26 @@ export const updateSchema = async (db: D1Database) => {
     `).run();
     logs.push("✅ Table 'menus' checked (Safe - ID TEXT).");
 
+    // 6. TABEL THEMES
+    // Menyimpan daftar tema dan status aktif
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS themes (
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        description TEXT,
+        author TEXT,
+        version TEXT,
+        active INTEGER DEFAULT 0
+      );
+    `).run();
+    logs.push("✅ Table 'themes' checked (Safe).");
+
+    // Optional: Auto-insert default theme jika tabel baru dibuat
+    await db.prepare(`
+      INSERT OR IGNORE INTO themes (id, name, description, active) 
+      VALUES ('labmu-default', 'LabMu Default', 'Standard LabMu Theme', 1);
+    `).run();
+
     return logs;
 
   } catch (e: any) {

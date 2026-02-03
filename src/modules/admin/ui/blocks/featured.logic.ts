@@ -5,7 +5,7 @@ export const featuredImageLogic = `
     
     // STATE ITEM AKTIF
     activeMediaItem: null, 
-    activeMediaMeta: { alt:'', title:'', description:'' }, // <--- Tambah Description
+    activeMediaMeta: { alt:'', title:'', description:'' }, 
     isSavingMeta: false,
 
     // BUKA MODAL
@@ -20,11 +20,10 @@ export const featuredImageLogic = `
     // SAAT KLIK GAMBAR
     setActiveItem(media) {
        this.activeMediaItem = media;
-       // Load data dari media item
        this.activeMediaMeta = {
            alt: media.alt || '',
            title: media.title || '',
-           description: media.description || '' // <--- Load Description
+           description: media.description || '' 
        };
     },
 
@@ -43,7 +42,7 @@ export const featuredImageLogic = `
             // Update data di list lokal agar real-time
             this.activeMediaItem.alt = this.activeMediaMeta.alt;
             this.activeMediaItem.title = this.activeMediaMeta.title;
-            this.activeMediaItem.description = this.activeMediaMeta.description; // <--- Update Local
+            this.activeMediaItem.description = this.activeMediaMeta.description; 
             
             alert('✅ Info gambar tersimpan!'); 
         } catch(e) { 
@@ -96,5 +95,5 @@ export const featuredImageLogic = `
         } finally {
             this.isUploadingFeatured = false;
         }
-    },
-`;
+    }
+`; // <--- INI WAJIB PAKAI BACKTICK (`), BUKAN PETIK SATU (')
